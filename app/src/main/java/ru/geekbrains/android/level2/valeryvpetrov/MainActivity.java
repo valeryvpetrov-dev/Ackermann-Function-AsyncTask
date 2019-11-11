@@ -1,6 +1,5 @@
 package ru.geekbrains.android.level2.valeryvpetrov;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -9,11 +8,14 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 public class MainActivity
         extends AppCompatActivity
-        implements View.OnClickListener, IProgressObserverView {
+        implements View.OnClickListener, TaskContract.ProducerConsumer<Float, Integer> {
 
     private ProgressBar progressCalculation;
     private Button buttonCalculate;
@@ -22,18 +24,16 @@ public class MainActivity
     private EditText inputN;
     private EditText inputM;
 
-    private AsyncTask ackermannFunctionAsyncTask;
-    private boolean isCalculating;
+    private static final String TAG_TASK_FRAGMENT = "task_fragment";
+    private TaskContract.ConsumerProducer<Integer[], Integer> contractProducerConsumer; // Consumer calls Producer interface
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        isCalculating = false;
-
         progressCalculation = findViewById(R.id.progress_calculation);
-        progressCalculation.setMax(PROGRESS_MAX_VALUE);
+        progressCalculation.setMax(TaskContract.ProducerConsumer.PROGRESS_MAX_VALUE);
 
         buttonCalculate = findViewById(R.id.button_calculate);
         buttonCalculate.setOnClickListener(this);
@@ -42,6 +42,24 @@ public class MainActivity
 
         inputN = findViewById(R.id.argument1);
         inputM = findViewById(R.id.argument2);
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        contractProducerConsumer = (TaskContract.ConsumerProducer<Integer[], Integer>)
+                fragmentManager.findFragmentByTag(TAG_TASK_FRAGMENT);
+
+        // if the fragment is non-null, then it is currently being
+        // retained across a configuration change.
+        if (contractProducerConsumer == null) {
+            contractProducerConsumer = new TaskFragment();
+            fragmentManager.beginTransaction()
+                    .add((Fragment) contractProducerConsumer, TAG_TASK_FRAGMENT)
+                    .commit();
+        }
+
+        Integer result = contractProducerConsumer.getResultIfReady();
+        if (result != null) {
+            postResult(result);
+        }
     }
 
     @Override
@@ -58,13 +76,10 @@ public class MainActivity
             int n = Integer.valueOf(inputN.getText().toString().trim());
             int m = Integer.valueOf(inputM.getText().toString().trim());
 
-            if (!isCalculating) {
-                ackermannFunctionAsyncTask = new AckermannFunctionAsyncTask(this);  // cannot be reused, create another instance
-                ackermannFunctionAsyncTask.execute(new Integer[]{n, m});
+            if (!contractProducerConsumer.isCalculating()) {
+                contractProducerConsumer.startCalculation(new Integer[]{n, m});
             } else {
-                if (ackermannFunctionAsyncTask != null) {
-                    ackermannFunctionAsyncTask.cancel(true);
-                }
+                contractProducerConsumer.stopCalculation();
             }
         } catch (NumberFormatException ex) {
             showToast(getResources().getString(R.string.error_number_format));
@@ -72,13 +87,11 @@ public class MainActivity
     }
 
     private void changeCalculationState() {
-        isCalculating = !isCalculating; // switch state
         textResult.setText("");
-        if (isCalculating) {
-            progressCalculation.setProgress(0); // reset progress for new calculation
+        progressCalculation.setProgress(0); // reset progress
+        if (contractProducerConsumer.isCalculating()) {
             buttonCalculate.setText(getResources().getString(R.string.button_calculate_cancel));
         } else {
-            // remain last progress for user
             buttonCalculate.setText(getResources().getString(R.string.button_calculate_start));
         }
     }
@@ -90,7 +103,7 @@ public class MainActivity
     }
 
     @Override
-    public void updateProgress(float progress) {
+    public void updateProgress(@NonNull Float progress) {
         // progress is passed as float between 0 and 1. 0 relates to no work done, 1 - all done
         if (progress == -1) {   // hard to estimate progress
             if (progressCalculation.getMax() < progressCalculation.getMax() + PROGRESS_DEFAULT_INCREMENT_VALUE)   // has reached the end
@@ -103,12 +116,12 @@ public class MainActivity
     }
 
     @Override
-    public int normalizeProgress(float progress) {
+    public int normalizeProgress(@NonNull Float progress) {
         return (int) (progress * PROGRESS_MAX_VALUE);   // convert to progress UI
     }
 
     @Override
-    public void postResult(int result) {
+    public void postResult(@NonNull Integer result) {
         changeCalculationState();
         if (result == -1) { // wrong arguments
             showToast(getResources().getString(R.string.error_wrong_arguments));
@@ -119,7 +132,7 @@ public class MainActivity
     }
 
     @Override
-    public void cancelProgress(int result) {
+    public void cancelProgress(@NonNull Integer result) {
         changeCalculationState();
         showToast(getResources().getString(R.string.info_calculation_cancel));
     }
