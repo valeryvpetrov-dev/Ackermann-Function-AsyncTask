@@ -123,11 +123,17 @@ public class MainActivity
     @Override
     public void postResult(@NonNull Integer result) {
         changeCalculationState();
-        if (result == -1) { // wrong arguments
-            showToast(getResources().getString(R.string.error_wrong_arguments));
-        } else {
-            textResult.setText(String.valueOf(result));
-            showToast(getResources().getString(R.string.info_calculation_success));
+        textResult.setText(String.valueOf(result));
+        showToast(getResources().getString(R.string.info_calculation_success));
+    }
+
+    @Override
+    public void postError(@NonNull Throwable e) {
+        changeCalculationState();
+        if (e instanceof StackOverflowError) {
+            showToast(getString(R.string.error_stack_overflow));
+        } else if (e instanceof IllegalArgumentException) {
+            showToast(getString(R.string.error_wrong_arguments));
         }
     }
 

@@ -6,11 +6,11 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.lang.ref.WeakReference;
-
 public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Integer> {
 
     private static final String LOG_TAG = AckermannFunctionAsyncTask.class.getSimpleName();
+    private static final int ERROR_CODE_WRONG_ARGUMENTS = -1;
+    private static final int ERROR_CODE_STACK_OVERFLOW = -2;
 
     @Nullable
     private TaskContract.TaskProducer contractTaskProducer; // Task calls Producer interface
@@ -34,16 +34,21 @@ public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Intege
     @Override
     protected Integer doInBackground(Integer... integers) {
         Log.d(LOG_TAG, String.format("doInBackground(...[%d])", integers.length));
-        if (integers.length == 2) { // determined only for 2 arguments
-            int n = integers[0];
-            int m = integers[1];
-            Log.d(LOG_TAG, String.format("doInBackground(%d, %d)", n, m));
-            estimatedResult = estimateResult(m, n);
-            int calculatedResult = calculateAckermannFunction(m, n);
-            publishProgress(1f);    // fully complete
-            return calculatedResult;
-        } else {
-            return -1;
+        try {
+            if (integers.length == 2) { // determined only for 2 arguments
+                int n = integers[0];
+                int m = integers[1];
+                Log.d(LOG_TAG, String.format("doInBackground(%d, %d)", n, m));
+                estimatedResult = estimateResult(m, n);
+                int calculatedResult = calculateAckermannFunction(m, n);
+                publishProgress(1f);    // fully complete
+                return calculatedResult;
+            } else {
+                return ERROR_CODE_WRONG_ARGUMENTS;
+            }
+        } catch (StackOverflowError e) {
+            if (e.getMessage() != null) Log.e(LOG_TAG, e.getMessage());
+            return ERROR_CODE_STACK_OVERFLOW;
         }
     }
 
@@ -85,7 +90,13 @@ public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Intege
     protected void onPostExecute(Integer result) {
         Log.d(LOG_TAG, String.format("onPostExecute(%d)", result));
         if (contractTaskProducer != null) {
-            contractTaskProducer.postResult(result);
+            if (result == ERROR_CODE_WRONG_ARGUMENTS) {
+                contractTaskProducer.postError(new IllegalArgumentException("Wrong arguments."));
+            } else if (result == ERROR_CODE_STACK_OVERFLOW) {
+                contractTaskProducer.postError(new StackOverflowError("Stack overflowed."));
+            } else {    // no error case
+                contractTaskProducer.postResult(result);
+            }
         }
         super.onPostExecute(result);
     }
@@ -106,7 +117,7 @@ public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Intege
         super.onCancelled(result);
     }
 
-    private int calculateAckermannFunction(int n, int m) {
+    private int calculateAckermannFunction(int n, int m) throws StackOverflowError {
         if (n < 0 && m < 0) {
             return -1;  // not supported for negative numbers
         } else {

@@ -73,6 +73,14 @@ public class TaskFragment extends Fragment
     }
 
     @Override
+    public void postError(@NonNull Throwable e) {
+        isCalculating = false;
+        if (contractProducerConsumer != null) {
+            contractProducerConsumer.postError(e);
+        }
+    }
+
+    @Override
     public void cancelProgress(@NonNull Integer result) {
         this.result = result;
         isCalculating = false;

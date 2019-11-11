@@ -11,6 +11,7 @@
 
     <string name="error_number_format">Wrong number format.</string>
     <string name="error_wrong_arguments">Wrong arguments.</string>
+    <string name="error_stack_overflow">Stack overflowed.</string>
 
     <string name="info_start_calculation">Start calculation.</string>
     <string name="info_calculation_success">Successfully calculated.</string>

@@ -22,6 +22,8 @@ public interface TaskContract {
 
         void postResult(@NonNull Result result);
 
+        void postError(@NonNull Throwable e);
+
         void cancelProgress(@NonNull Result result);
     }
 
@@ -50,6 +52,8 @@ public interface TaskContract {
         void updateProgress(@NonNull Progress progress);
 
         void postResult(@NonNull Result result);
+
+        void postError(@NonNull Throwable e);
 
         void cancelProgress(@NonNull Result result);
     }
