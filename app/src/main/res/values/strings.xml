@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Lesson 3</string>
+    <string name="app_name">Ackermann function calculation</string>
 
     <string name="label_calculation">Ackermann function calculation</string>
 
