@@ -3,23 +3,30 @@ package ru.geekbrains.android.level2.valeryvpetrov;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import java.lang.ref.WeakReference;
+
 public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Integer> {
 
     private static final String LOG_TAG = AckermannFunctionAsyncTask.class.getSimpleName();
 
-    private IProgressObserverView progressObserverView;
+    // Allow view to get into weakly reachable state to be garbage collected
+    private WeakReference<IProgressObserverView> progressObserverView;
 
     private int maxCalculatedResult;
     private int estimatedResult;
 
-    public AckermannFunctionAsyncTask(IProgressObserverView progressObserverView) {
-        this.progressObserverView = progressObserverView;
+    public AckermannFunctionAsyncTask(@NonNull IProgressObserverView progressObserverView) {
+        this.progressObserverView = new WeakReference<>(progressObserverView);
     }
 
     @Override
     protected void onPreExecute() {
         Log.d(LOG_TAG, "onPreExecute()");
-        progressObserverView.startProgress();
+        if (progressObserverView.get() != null) {
+            progressObserverView.get().startProgress();
+        }
         super.onPreExecute();
     }
 
@@ -67,14 +74,18 @@ public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Intege
     @Override
     protected void onProgressUpdate(Float... values) {
         Log.d(LOG_TAG, String.format("onProgressUpdate(%f)", values[0]));
-        progressObserverView.updateProgress(values[0]);
+        if (progressObserverView.get() != null) {
+            progressObserverView.get().updateProgress(values[0]);
+        }
         super.onProgressUpdate(values);
     }
 
     @Override
     protected void onPostExecute(Integer result) {
         Log.d(LOG_TAG, String.format("onPostExecute(%d)", result));
-        progressObserverView.postResult(result);
+        if (progressObserverView.get() != null) {
+            progressObserverView.get().postResult(result);
+        }
         super.onPostExecute(result);
     }
 
@@ -88,7 +99,9 @@ public class AckermannFunctionAsyncTask extends AsyncTask<Integer, Float, Intege
             result = -1;
         }
         Log.d(LOG_TAG, logMessage);
-        progressObserverView.cancelProgress(result);
+        if (progressObserverView.get() != null) {
+            progressObserverView.get().cancelProgress(result);
+        }
         super.onCancelled(result);
     }
 
