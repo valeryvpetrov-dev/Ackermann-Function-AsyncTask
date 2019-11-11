@@ -18,6 +18,9 @@ public class MainActivity
     private ProgressBar progressCalculation;
     private Button buttonCalculate;
     private TextView textResult;
+    // Ackermann function arguments
+    private EditText inputN;
+    private EditText inputM;
 
     private AsyncTask ackermannFunctionAsyncTask;
     private boolean isCalculating;
@@ -36,6 +39,9 @@ public class MainActivity
         buttonCalculate.setOnClickListener(this);
 
         textResult = findViewById(R.id.text_result);
+
+        inputN = findViewById(R.id.argument1);
+        inputM = findViewById(R.id.argument2);
     }
 
     @Override
@@ -49,8 +55,8 @@ public class MainActivity
 
     private void calculate() {
         try {
-            int n = Integer.valueOf(((EditText) findViewById(R.id.argument1)).getText().toString().trim());
-            int m = Integer.valueOf(((EditText) findViewById(R.id.argument2)).getText().toString().trim());
+            int n = Integer.valueOf(inputN.getText().toString().trim());
+            int m = Integer.valueOf(inputM.getText().toString().trim());
 
             if (!isCalculating) {
                 ackermannFunctionAsyncTask = new AckermannFunctionAsyncTask(this);  // cannot be reused, create another instance
